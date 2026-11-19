@@ -1,6 +1,7 @@
 using AutoMapper;
 using WebApplication1.Contracts;
-using WebApplication1.Models;
+using Cinema.Business.Dtos;
+using Cinema.Domain.Entities;
 
 namespace WebApplication1.Mapping
 {
@@ -19,6 +20,8 @@ namespace WebApplication1.Mapping
                 .ForMember(d => d.Id, o => o.Ignore())
                 .ForMember(d => d.Comments, o => o.Ignore())
                 .ForMember(d => d.Sessions, o => o.Ignore());
+
+            CreateMap<MovieSearchRequest, MovieSearchDto>();
 
             CreateMap<MovieComment, MovieCommentResponse>();
 
@@ -46,11 +49,12 @@ namespace WebApplication1.Mapping
                 .ForMember(d => d.Id, o => o.Ignore())
                 .ForMember(d => d.Movie, o => o.Ignore());
 
+            CreateMap<IdentityLoginRequest, LoginDto>().ReverseMap();
+
             CreateMap<User, UserResponse>();
 
-            CreateMap<UserRegisterContract, User>()
+            CreateMap<IdentityRegisterRequest, User>()
                 .ForMember(d => d.Id, o => o.Ignore())
-                .ForMember(d => d.PasswordHash, o => o.MapFrom(s => s.Password))
                 .ForMember(d => d.CreatedAt, o => o.MapFrom(_ => DateTime.UtcNow));
         }
     }

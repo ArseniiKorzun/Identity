@@ -26,6 +26,7 @@ async function request(path, options = {}) {
 function extractError(data) {
   if (!data) return null
   if (typeof data === 'string') return data
+  if (Array.isArray(data)) return data.map((e) => e.errorMessage).join(' ')
   if (data.errors) return Object.values(data.errors).flat().join(' ')
   return data.title || data.detail || null
 }

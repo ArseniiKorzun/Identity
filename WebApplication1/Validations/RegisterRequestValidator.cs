@@ -3,7 +3,7 @@ using WebApplication1.Contracts;
 
 namespace WebApplication1.Validations
 {
-    public class RegisterRequestValidator : AbstractValidator<UserRegisterContract>
+    public class RegisterRequestValidator : AbstractValidator<IdentityRegisterRequest>
     {
         public RegisterRequestValidator()
         {

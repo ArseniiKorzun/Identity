@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 
-const emptyLogin = { email: '', password: '' }
+const emptyLogin = { login: '', password: '' }
 const emptyRegister = { name: '', email: '', password: '', confirmPassword: '', phone: '', photoPath: '', age: '' }
 
 export default function AuthPage({ onLogin }) {
@@ -24,8 +24,9 @@ export default function AuthPage({ onLogin }) {
     setMessage(null)
     try {
       if (isLogin) {
-        const user = await api.login(login)
-        onLogin(user)
+        const isValid = await api.login(login)
+        if (!isValid) throw new Error('Invalid login or password.')
+        onLogin({ name: login.login })
       } else {
         await api.register({
           ...register,
@@ -33,7 +34,7 @@ export default function AuthPage({ onLogin }) {
           photoPath: register.photoPath || null,
           age: Number(register.age) || 0,
         })
-        setLogin({ email: register.email, password: '' })
+        setLogin({ login: register.email, password: '' })
         setRegister(emptyRegister)
         setMode('login')
         setMessage({ type: 'success', text: 'Registration successful! You can log in now.' })
@@ -64,7 +65,7 @@ export default function AuthPage({ onLogin }) {
         <p className="subtitle">{isLogin ? 'Welcome back! Sign in to see your films.' : 'Create an account to start your collection.'}</p>
         {isLogin ? (
           <>
-            {loginField('email', { type: 'email', placeholder: 'Email', required: true })}
+            {loginField('login', { placeholder: 'Login', required: true, minLength: 5, maxLength: 50 })}
             {loginField('password', { type: 'password', placeholder: 'Password', required: true })}
           </>
         ) : (

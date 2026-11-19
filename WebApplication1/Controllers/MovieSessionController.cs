@@ -2,8 +2,8 @@ using AutoMapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Contracts;
-using WebApplication1.Models;
-using WebApplication1.Services;
+using Cinema.Domain.Entities;
+using Cinema.Business.Services;
 
 namespace WebApplication1.Controllers
 {

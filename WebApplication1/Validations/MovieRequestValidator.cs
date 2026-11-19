@@ -38,6 +38,12 @@ namespace WebApplication1.Validations
                 .MaximumLength(500).WithMessage("Movie URL cannot exceed 500 characters.")
                 .Must(IsHttpUrl).WithMessage("Movie URL must be a valid http or https link.")
                 .When(x => !string.IsNullOrEmpty(x.MovieUrl));
+
+            RuleFor(x => x.Genre)
+                .MaximumLength(50).WithMessage("Genre cannot exceed 50 characters.");
+
+            RuleFor(x => x.Country)
+                .MaximumLength(50).WithMessage("Country cannot exceed 50 characters.");
         }
 
         private static bool IsHttpUrl(string url) =>

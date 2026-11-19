@@ -1,18 +1,18 @@
 # Movie API: контракти та валідація
 
-ASP.NET Core Web API (.NET 10): Controller -> Service -> Repository -> DbContext -> SQL Server LocalDB.
+ASP.NET Core Web API (.NET 10): Controller -> Service -> Repository -> DbContext -> SQL Server LocalDB. Шари винесено в окремі проєкти (див. розділ 9).
 
 ## Інструкція запуску
 
 1. Потрібні .NET 10 SDK і SQL Server LocalDB (входить у Visual Studio).
 2. Рядок підключення в `WebApplication1/appsettings.json` (ключ `ConnectionStrings:DefaultConnection`).
-3. Застосувати міграції:
+3. Застосувати міграції з кореня репозиторію (папка з `WebApplication1.slnx`):
    ```
-   cd WebApplication1
-   dotnet ef database update
+   dotnet ef database update --project Cinema.DataAccess --startup-project WebApplication1
    ```
-   (або `update-database` у Package Manager Console)
-4. Запустити: `dotnet run --launch-profile http` і відкрити `http://localhost:5199/swagger`.
+   (або `update-database` у Package Manager Console: Startup Project = WebApplication1, Default project = Cinema.DataAccess)
+   Міграція `AddIdentity` видаляє старих користувачів, після неї їх треба зареєструвати заново (розділ 10).
+4. Запустити з папки `WebApplication1`: `dotnet run --launch-profile http` і відкрити `http://localhost:5199/swagger`.
 
 ## Ендпоінти фільмів (`api/Movie`)
 
@@ -116,7 +116,7 @@ RuleFor(x => x.Title)
 
 ## 6. Розширення: ReleaseYear, PosterUrl, MovieUrl, коментарі
 
-Шари: Controller -> Service -> Repository (інтерфейси, реєстрація в DI в `Program.cs`) -> DbContext. Контролери не звертаються до `AppDbContext` напряму.
+Шари: Controller -> Service -> Repository (інтерфейси, реєстрація в DI через `AddBusiness` / `AddDataAccess`) -> DbContext. Контролери не звертаються до `AppDbContext` напряму.
 
 Правила валідації:
 - `Title`, `Director` обов'язкові, до 100 символів; `Description` до 1000; `PhotoPath`, `PosterUrl`, `MovieUrl` до 500.
@@ -171,7 +171,7 @@ RuleFor(x => x.Title)
 
 DTO розділені: `CreateMovieSessionRequest`, `UpdateMovieSessionRequest` і `MovieSessionResponse`. Валідація: `MovieSessionRequestValidator<T>` (спільні правила), `CreateMovieSessionRequestValidator` (додає правило «не в минулому»).
 
-Асинхронність: контролер, сервіс і репозиторій для фільмів, коментарів і сеансів повертають `Task`/`Task<T>` і використовують `ToListAsync`, `FirstOrDefaultAsync`, `AnyAsync`. `SaveChangesAsync` винесено в окремий метод репозиторію, який сервіс викликає після змін. Авторизація (`AuthController`, `UserService`) поки синхронна і не входить до цього етапу.
+Асинхронність: контролер, сервіс і репозиторій для фільмів, коментарів і сеансів повертають `Task`/`Task<T>` і використовують `ToListAsync`, `FirstOrDefaultAsync`, `AnyAsync`. `SaveChangesAsync` винесено в окремий метод репозиторію, який сервіс викликає після змін. Авторизація (`AuthController`, `IdentityAuthService`, `UserRepository`) теж асинхронна і працює через Identity, див. розділ 10.
 
 ## 8. Запуск клієнта
 
@@ -188,3 +188,78 @@ npm run dev
 - `#/admin`: панель керування сеансами (створення, редагування, видалення). Фільм обирається зі списку, який віддає API.
 
 Приховування кнопок не є захистом API. Рольовий доступ і JWT не реалізовані.
+
+## 9. Структура рішення
+
+`WebApplication1.slnx` складається з чотирьох проєктів. Залежності йдуть в один бік: API -> Business -> DataAccess -> Domain.
+
+| Проєкт | Що містить | Посилається на |
+|---|---|---|
+| `Cinema.Domain` | сутності БД (`Entities/`: `Movie`, `MovieComment`, `MovieSession`, `User` як `IdentityUser<int>`) | ASP.NET Core (Identity) |
+| `Cinema.DataAccess` | `Context/AppDbContext` (IdentityDbContext, Fluent API), `Repositories/`, `Migrations/`, `AddDataAccess` | Domain, EF Core SqlServer, Identity EF |
+| `Cinema.Business` | `Services/` (бізнес-правила), `AddBusiness` | DataAccess, Domain |
+| `WebApplication1` | контролери, контракти (DTO), FluentValidation, AutoMapper, `Program.cs` | Business, Domain |
+
+- Окремих DTO у бізнес-шарі немає: сервіси працюють із сутностями, а контракти й мапінг належать API.
+- У `WebApplication1.csproj` увімкнено `DisableTransitiveProjectReferences`, тому API не бачить `Cinema.DataAccess`. Спроба звернутися з контролера до `AppDbContext` чи репозиторію дає помилку компіляції CS0234.
+- `Program.cs` реєструє шари одним викликом `builder.Services.AddBusiness(connectionString)`.
+- Нова міграція (з кореня репозиторію): `dotnet ef migrations add <Назва> --project Cinema.DataAccess --startup-project WebApplication1`.
+
+## 10. Identity: користувачі та паролі
+
+`User` успадковує `IdentityUser<int>` (поля `Id`, `UserName`, `Email`, `PasswordHash`, `SecurityStamp` тощо) і додає `Name` та `CreatedAt`. Таблиця називається `AspNetUsers`.
+
+- **Паролі хешуються.** Identity зберігає в `PasswordHash` хеш (PBKDF2), а не сам пароль.
+- **Email унікальний.** Перевірка в контролері (409) і унікальний індекс `EmailIndex` на `NormalizedEmail` у БД. `UserName` дорівнює email.
+- **Політика пароля** така сама, як у валідаторі: мінімум 6 символів, без вимог до цифр, регістру й символів. Налаштовується в `AddDataAccess`.
+- **Вхід** за логіном (`UserName`, у якому зберігається email) через `IdentityAuthService.ValidateUserCredentialsAsync`: `FindByNameAsync`, потім `UserManager.CheckPasswordAsync`. Відповідь 200 з `true` або `false`, неіснуючий логін і невірний пароль дають однаковий `false`. Схема за конспектом описана в `docs/identity.md`.
+- **Сесій, JWT і ролей поки немає.** Логін повертає лише `true` або `false`, як у конспекті. Захист ендпоінтів і ролі будуть на наступному етапі, тому `GET /api/auth/users` поки доступний без авторизації.
+- **Збереження.** `UserManager` сам зберігає зміни, тому для користувачів `SaveChangesAsync` у сервісі не викликається. Це виняток із загального правила.
+
+| Метод | Маршрут | Тіло | Відповідь |
+|---|---|---|---|
+| POST | `/auth/register` | `IdentityRegisterRequest` | 201 `UserResponse` / 400 / 409 |
+| POST | `/auth/login` | `IdentityLoginRequest` (`Login`, `Password`) | 200 `true` / `false` / 400 |
+| GET | `/auth/users` | - | 200 `UserResponse[]` |
+
+Міграція `AddIdentity` видаляє старі рядки таблиці `Users`: їхні паролі були збережені відкритим текстом, і Identity не змогла б їх перевірити. Далі таблиця перейменовується в `AspNetUsers`, і створюються таблиці ролей, claims, логінів і токенів. Фільми, сеанси й коментарі не змінюються.
+
+Результати перевірки (HTTP-запити на запущеному застосунку):
+
+| # | Запит | Очікувано | Фактично |
+|---|---|---|---|
+| OK1 | POST `/auth/register` з коректними даними | 201 | 201, `{"id":11,...}` |
+| OK2 | POST `/auth/login` з правильним паролем | 200 | 200, профіль користувача |
+| OK3 | GET `/auth/users` | 200, без паролів | 200, список без полів пароля |
+| ERR1 | Повторна реєстрація з тим самим email (у т.ч. у верхньому регістрі) | 409 | 409, `User with this email already exists.` |
+| ERR2 | Пароль коротший за 6 символів | 400 | 400, `Password: ["Password must be at least 6 characters long."]` |
+| ERR3 | Паролі не збігаються | 400 | 400, `ConfirmPassword: ["Passwords do not match."]` |
+| ERR4 | Некоректний email | 400 | 400, `Email: [...]` |
+| ERR5 | Невірний пароль | 200 `false` | 200, `false` |
+| ERR6 | Неіснуючий логін | 200 `false` | 200, `false` |
+| ERR7 | Порожній пароль при вході | 400 | 400, масив `[{"propertyName":"Password","errorMessage":"Password is required.",...}]` |
+| DB1 | Значення `PasswordHash` у таблиці `AspNetUsers` | хеш, не текст | починається з `AQAAAA` (формат Identity), довжина 84 |
+| REG1 | Регресія: фільми, сеанси, коментарі, вхід через Vite-проксі | без змін | 200 у всіх випадках |
+
+Тестовий акаунт `identity.test@example.com` залишено в БД.
+
+## 11. Пошук фільмів (`api/Movie/movies/search`)
+
+`GET /api/Movie/movies/search` приймає необов'язкові query-параметри. Усі передані параметри діють разом (AND), відсутні або порожні не обмежують пошук. Без параметрів повертаються всі фільми.
+
+| Параметр | Умова |
+|---|---|
+| `id` | точний збіг ID |
+| `name` | назва містить текст (без урахування регістру) |
+| `genre` | жанр збігається |
+| `releaseYear` | рік випуску збігається |
+| `country` | країна збігається |
+| `keyword` | текст міститься в назві або в описі |
+
+Відповідь: 200 `MovieResponse[]` (порожній масив, якщо нічого не знайдено) або 400, якщо `id` чи `releaseYear` не ціле число.
+
+Умови формуються в `MovieService.SearchAsync` (`MovieSearchDto` -> `Expression<Func<Movie, bool>>`) і передаються в `MovieRepository.GetAsync`.
+
+Для пошуку додано поля `Genre` і `Country` (до 50 символів, необов'язкові) у `Movie`, контракти та валідацію. Міграція `AddMovieGenreAndCountry` лише додає ці колонки, існуючі фільми отримують `NULL`.
+
+Перевірка: без параметрів 20 фільмів (як у `GET /movies`); один параметр; кілька параметрів; комбінація без збігів (порожній масив); нечислове `id` (400); жанр довший за 50 символів при створенні (400).

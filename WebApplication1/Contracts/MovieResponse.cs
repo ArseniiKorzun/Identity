@@ -11,5 +11,7 @@ namespace WebApplication1.Contracts
         public int ReleaseYear { get; set; }
         public string PosterUrl { get; set; }
         public string MovieUrl { get; set; }
+        public string Genre { get; set; }
+        public string Country { get; set; }
     }
 }

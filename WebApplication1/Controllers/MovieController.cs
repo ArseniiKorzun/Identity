@@ -2,8 +2,9 @@ using AutoMapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Contracts;
-using WebApplication1.Models;
-using WebApplication1.Services;
+using Cinema.Domain.Entities;
+using Cinema.Business.Dtos;
+using Cinema.Business.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -21,6 +22,13 @@ namespace WebApplication1.Controllers
         {
             var response = _mapper.Map<List<MovieResponse>>(await _movieService.GetAllAsync());
             return Ok(response);
+        }
+
+        [HttpGet("movies/search")]
+        public async Task<ActionResult<List<MovieResponse>>> SearchMovies([FromQuery] MovieSearchRequest request)
+        {
+            var movies = await _movieService.SearchAsync(_mapper.Map<MovieSearchDto>(request));
+            return Ok(_mapper.Map<List<MovieResponse>>(movies));
         }
 
         [HttpGet("movies/{id:int}")]

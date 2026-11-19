@@ -10,5 +10,7 @@ namespace WebApplication1.Contracts
         int ReleaseYear { get; }
         string PosterUrl { get; }
         string MovieUrl { get; }
+        string Genre { get; }
+        string Country { get; }
     }
 }
