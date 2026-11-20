@@ -2,7 +2,7 @@ namespace WebApplication1.Contracts
 {
     public class IdentityRegisterRequest
     {
-        public string Name { get; set; }
+        public string Login { get; set; }
 
         public string Email { get; set; }
 
@@ -10,10 +10,10 @@ namespace WebApplication1.Contracts
 
         public string ConfirmPassword { get; set; }
 
-        public string Phone { get; set; }
+        public string DisplayName { get; set; }
 
-        public string PhotoPath { get; set; }
+        public string City { get; set; }
 
-        public int Age { get; set; }
+        public string FavoriteGenre { get; set; }
     }
 }

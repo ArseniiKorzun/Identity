@@ -51,10 +51,14 @@ namespace WebApplication1.Mapping
 
             CreateMap<IdentityLoginRequest, LoginDto>().ReverseMap();
 
-            CreateMap<User, UserResponse>();
+            CreateMap<User, UserProfileResponse>();
 
             CreateMap<IdentityRegisterRequest, User>()
                 .ForMember(d => d.Id, o => o.Ignore())
+                .ForMember(d => d.UserName, o => o.MapFrom(s => s.Login))
+                .ForMember(d => d.DisplayName, o => o.MapFrom(s => s.DisplayName.Trim()))
+                .ForMember(d => d.City, o => o.MapFrom(s => s.City == null ? null : s.City.Trim()))
+                .ForMember(d => d.FavoriteGenre, o => o.MapFrom(s => s.FavoriteGenre == null ? null : s.FavoriteGenre.Trim()))
                 .ForMember(d => d.CreatedAt, o => o.MapFrom(_ => DateTime.UtcNow));
         }
     }

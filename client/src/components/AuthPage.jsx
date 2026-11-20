@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from '../api.js'
 
 const emptyLogin = { login: '', password: '' }
-const emptyRegister = { name: '', email: '', password: '', confirmPassword: '', phone: '', photoPath: '', age: '' }
+const emptyRegister = { login: '', displayName: '', email: '', password: '', confirmPassword: '', city: '', favoriteGenre: '' }
 
 export default function AuthPage({ onLogin }) {
   const [mode, setMode] = useState('login')
@@ -30,11 +30,10 @@ export default function AuthPage({ onLogin }) {
       } else {
         await api.register({
           ...register,
-          phone: register.phone || null,
-          photoPath: register.photoPath || null,
-          age: Number(register.age) || 0,
+          city: register.city || null,
+          favoriteGenre: register.favoriteGenre || null,
         })
-        setLogin({ login: register.email, password: '' })
+        setLogin({ login: register.login, password: '' })
         setRegister(emptyRegister)
         setMode('login')
         setMessage({ type: 'success', text: 'Registration successful! You can log in now.' })
@@ -70,13 +69,13 @@ export default function AuthPage({ onLogin }) {
           </>
         ) : (
           <>
-            {registerField('name', { placeholder: 'Name', required: true })}
+            {registerField('login', { placeholder: 'Login (5-50 characters)', required: true, minLength: 5, maxLength: 50 })}
+            {registerField('displayName', { placeholder: 'Display name (3-30 characters)', required: true, minLength: 3, maxLength: 30 })}
             {registerField('email', { type: 'email', placeholder: 'Email', required: true })}
             {registerField('password', { type: 'password', placeholder: 'Password', required: true })}
             {registerField('confirmPassword', { type: 'password', placeholder: 'Confirm password', required: true })}
-            {registerField('phone', { type: 'tel', placeholder: 'Phone (+380...)' })}
-            {registerField('photoPath', { placeholder: 'Photo URL' })}
-            {registerField('age', { type: 'number', min: 0, max: 120, placeholder: 'Age' })}
+            {registerField('city', { placeholder: 'City', maxLength: 60 })}
+            {registerField('favoriteGenre', { placeholder: 'Favorite genre', maxLength: 50 })}
           </>
         )}
 

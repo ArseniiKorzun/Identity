@@ -263,3 +263,38 @@ npm run dev
 Для пошуку додано поля `Genre` і `Country` (до 50 символів, необов'язкові) у `Movie`, контракти та валідацію. Міграція `AddMovieGenreAndCountry` лише додає ці колонки, існуючі фільми отримують `NULL`.
 
 Перевірка: без параметрів 20 фільмів (як у `GET /movies`); один параметр; кілька параметрів; комбінація без збігів (порожній масив); нечислове `id` (400); жанр довший за 50 символів при створенні (400).
+
+## 12. Учасники кіноклубу
+
+Користувач (`User : IdentityUser<int>`) має поля: `DisplayName` (відображуване ім'я, 3–30 символів; колишнє `Name`, перейменовано міграцією `UserClubProfile` з збереженням даних), `City` (до 60) і `FavoriteGenre` (текст, до 50). `UserName` дорівнює логіну, а email зберігається окремо.
+
+| Метод | Маршрут | Тіло | Відповідь |
+|---|---|---|---|
+| POST | `/auth/register` | `IdentityRegisterRequest` (`Login`, `Email`, `Password`, `ConfirmPassword`, `DisplayName`, `City`, `FavoriteGenre`) | 201 `UserProfileResponse` / 400 / 409 |
+| POST | `/auth/login` | `IdentityLoginRequest` | 200 `true` / `false` |
+| GET | `/auth/users` | - | 200 `UserProfileResponse[]` |
+| GET | `/auth/users/{id}` | - | 200 `UserProfileResponse` / 404 |
+
+- `UserProfileResponse` містить лише `Id`, `DisplayName`, `City`, `FavoriteGenre`. Email, пароль, `PasswordHash`, `SecurityStamp` та інші службові поля не повертаються.
+- Повторний логін (`Login` уже зайнятий) дає 409 з повідомленням «Login is already taken.». Помилки `IdentityResult` (наприклад, недопустимі символи логіна) передаються клієнту з 400 і кодом помилки.
+- Пароль хешує Identity (`UserManager`). Правила пароля: мінімум 6 символів, без вимог до цифр і регістру. Це налаштування `AddDataAccess`.
+- Некоректні дані (порожнє або з пробілів ім'я, ім'я з 2 або 31 символом, невірний email, різні паролі) повертають 400 з описом, без HTTP 500.
+
+### Data Annotations
+
+Контракти фільмів, коментарів і сеансів мають `[Required]`, `[MaxLength]` та `[Range]`. FluentValidation залишено для складніших правил. Через `[ApiController]` атрибути перевіряються першими, тому для порожнього `Title` відповідь 400 формується стандартним способом ASP.NET з описом поля.
+
+### Зміни в коді
+
+- `Cinema.Domain/Entities/User.cs`: `DisplayName`, `City`, `FavoriteGenre`.
+- `Cinema.DataAccess/Migrations/20261120130500_UserClubProfile.cs`: перейменування `Name` в `DisplayName` (без втрати даних), нові колонки.
+- `WebApplication1/Contracts/IdentityRegisterRequest.cs`, `UserProfileResponse.cs` (новий), `UserResponse.cs` (видалено).
+- `WebApplication1/Validations/RegisterRequestValidator.cs`: правила для логіна, email, пароля, імені, міста, жанру.
+- `Cinema.DataAccess/Repositories/UserRepository.cs`, `IUserRepository.cs`: `FindByIdAsync`.
+- `Cinema.Business/Services/IdentityAuthService.cs`: профіль, перевірка логіна.
+- `WebApplication1/Controllers/AuthController.cs`: 409 для зайнятого логіна і email, `IdentityResult`, `GET users/{id}`.
+- `WebApplication1/Mapping/MappingProfile.cs`: логін в `UserName`, очищення пробілів.
+- `client/src/components/AuthPage.jsx`: форма реєстрації з новими полями.
+- Data Annotations у `CreateMovieRequest`, `UpdateMovieRequest`, `CreateMovieCommentRequest`, `UpdateMovieCommentRequest`, `CreateMovieSessionRequest`, `UpdateMovieSessionRequest`.
+
+Знімки: `docs/screenshots/club/` (структура БД Identity, реєстрація, помилки, вхід, профіль).

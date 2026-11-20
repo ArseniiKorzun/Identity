@@ -15,6 +15,8 @@ namespace Cinema.DataAccess.Repositories
 
         public Task<List<User>> GetAllAsync() => _userManager.Users.ToListAsync();
 
+        public Task<User> FindByIdAsync(int id) => _userManager.FindByIdAsync(id.ToString());
+
         public Task<User> FindByEmailAsync(string email) => _userManager.FindByEmailAsync(email);
 
         public Task<User> FindByNameAsync(string userName) => _userManager.FindByNameAsync(userName);

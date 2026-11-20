@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Contracts;
 using Cinema.Domain.Entities;
@@ -17,33 +18,51 @@ namespace WebApplication1.Controllers
         IMapper _mapper) : ControllerBase
     {
         [HttpGet("users")]
-        public async Task<ActionResult<List<UserResponse>>> GetAll(){
-
+        public async Task<ActionResult<List<UserProfileResponse>>> GetAll()
+        {
             var users = await _identityAuthService.GetAllAsync();
-            var response = _mapper.Map<List<UserResponse>>(users);
+            return Ok(_mapper.Map<List<UserProfileResponse>>(users));
+        }
 
+        [HttpGet("users/{id:int}")]
+        public async Task<ActionResult<UserProfileResponse>> GetProfile(int id)
+        {
+            var user = await _identityAuthService.GetProfileAsync(id);
+            if (user == null)
+                return NotFound($"User with id {id} not found.");
 
-            return Ok(response);
+            return Ok(_mapper.Map<UserProfileResponse>(user));
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult> Register([FromBody] IdentityRegisterRequest data)
+        public async Task<ActionResult<UserProfileResponse>> Register([FromBody] IdentityRegisterRequest data)
         {
             var validationResult = _registerValidator.Validate(data);
-
             if (!validationResult.IsValid)
-            {
                 return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
-            }
+
+            if (await _identityAuthService.LoginExistsAsync(data.Login))
+                return Conflict(new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Login is already taken.",
+                    Detail = $"Login '{data.Login}' is already taken. Choose another login."
+                });
 
             if (await _identityAuthService.EmailExistsAsync(data.Email))
-                return Conflict("User with this email already exists.");
+                return Conflict(new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Email is already registered.",
+                    Detail = "User with this email already exists."
+                });
 
             var user = _mapper.Map<User>(data);
             var result = await _identityAuthService.RegisterAsync(user, data.Password);
             if (!result.Succeeded)
-                return ValidationProblem(new ValidationProblemDetails(result.Errors.ToDictionary(e => e.Code, e => new[] { e.Description })));
-            return CreatedAtAction(nameof(GetAll), new { id = user.Id }, _mapper.Map<UserResponse>(user));
+                return IdentityFailure(result);
+
+            return CreatedAtAction(nameof(GetProfile), new { id = user.Id }, _mapper.Map<UserProfileResponse>(user));
         }
 
         [HttpPost("login")]
@@ -59,5 +78,21 @@ namespace WebApplication1.Controllers
             return Ok(isValid);
         }
 
+        private ActionResult IdentityFailure(IdentityResult result)
+        {
+            var errors = result.Errors
+                .GroupBy(e => e.Code)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+
+            if (result.Errors.Any(e => e.Code is "DuplicateUserName" or "DuplicateEmail"))
+                return Conflict(new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Registration conflict.",
+                    Detail = string.Join(" ", result.Errors.Select(e => e.Description))
+                });
+
+            return ValidationProblem(new ValidationProblemDetails(errors));
+        }
     }
 }
