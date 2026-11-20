@@ -37,9 +37,7 @@ Id не входить у `CreateMovieRequest` (його генерує БД) і
 
 `Id` і `CreatedAt` коментаря задає сервер. Коментар до неіснуючого фільму створити не можна (404). Видалення фільму видаляє і його коментарі (каскад).
 
-Swagger UI з усіма ендпоінтами та схемами контрактів:
-
-![Swagger](docs/screenshots/swagger.png)
+Swagger UI з усіма ендпоінтами та схемами контрактів доступний за адресою `http://localhost:5199/swagger`.
 
 ## 1. Data Annotations
 
@@ -297,4 +295,4 @@ npm run dev
 - `client/src/components/AuthPage.jsx`: форма реєстрації з новими полями.
 - Data Annotations у `CreateMovieRequest`, `UpdateMovieRequest`, `CreateMovieCommentRequest`, `UpdateMovieCommentRequest`, `CreateMovieSessionRequest`, `UpdateMovieSessionRequest`.
 
-Знімки: `docs/screenshots/club/` (структура БД Identity, реєстрація, помилки, вхід, профіль).
+Знімки: `screenshots/club/` (структура БД Identity, реєстрація, помилки, вхід, профіль). Знімки входу і пошуку: `screenshots/identity/`, `screenshots/search/`.
