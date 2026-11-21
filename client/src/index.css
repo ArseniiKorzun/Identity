@@ -274,3 +274,10 @@ button.danger:hover:not(:disabled) { background: rgba(255, 77, 109, 0.15); box-s
 @media (max-width: 600px) {
   .movies-header { flex-direction: column; gap: 12px; }
 }
+
+/* Movie card editing */
+.field-error { color: #ff8fa3; font-size: 12px; font-weight: 500; }
+input.invalid, textarea.invalid { border-color: #ff4d6d; }
+.session-form .wide { grid-column: 1 / -1; }
+.session-form textarea { font: inherit; }
+.session-form label.wide { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }

@@ -19,7 +19,12 @@ async function request(path, options = {}) {
     /* plain-text response */
   }
 
-  if (!response.ok) throw new Error(extractError(data) || `Request failed (${response.status})`)
+  if (!response.ok) {
+    const err = new Error(extractError(data) || `Request failed (${response.status})`)
+    err.status = response.status
+    err.fieldErrors = data?.errors ?? null
+    throw err
+  }
   return data
 }
 
@@ -45,6 +50,7 @@ export const api = {
   getMovies: () => request('/movie/movies'),
   getMovie: (id) => request(`/movie/movies/${id}`),
   addMovie: (data) => post('/movie/movies', data),
+  updateMovie: (id, data) => put(`/movie/movies/${id}`, data),
   deleteMovie: (id) => request(`/movie/movies/${id}`, { method: 'DELETE' }),
   getSessions: (filters = {}) => request(`/MovieSession/sessions${toQuery(filters)}`),
   addSession: (data) => post('/MovieSession/sessions', data),

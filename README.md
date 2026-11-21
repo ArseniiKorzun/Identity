@@ -295,4 +295,14 @@ npm run dev
 - `client/src/components/AuthPage.jsx`: форма реєстрації з новими полями.
 - Data Annotations у `CreateMovieRequest`, `UpdateMovieRequest`, `CreateMovieCommentRequest`, `UpdateMovieCommentRequest`, `CreateMovieSessionRequest`, `UpdateMovieSessionRequest`.
 
-Знімки: `screenshots/club/` (структура БД Identity, реєстрація, помилки, вхід, профіль). Знімки входу і пошуку: `screenshots/identity/`, `screenshots/search/`.
+
+
+## 13. Картка фільму та редагування
+
+Картка відкривається з каталогу (`#/movies`, назва фільму) за адресою `#/movies/{id}`. Кнопка **Edit** відкриває форму, яка надсилає `PUT /api/movie/movies/{id}`. Після збереження картка перечитує дані з API, тож зміни видно і після перезавантаження сторінки.
+
+- Поля `Runtime` (тривалість у хвилинах, 1–600) і `Description` (опис, до 1000 символів) уже були в моделі `Movie`, тому міграція для них не потрібна.
+- Назва (`Title`) і тривалість перевіряються на сервері. Помилка показується біля відповідного поля, введені дані зберігаються у формі.
+- Фільм, якого немає, дає 404 і повідомлення «Фільм не знайдено».
+
+Знімки: `screenshot/` (картка, збережені зміни після перезавантаження, помилка валідації, фільм не знайдено).
