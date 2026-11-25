@@ -6,6 +6,7 @@ using WebApplication1.Contracts;
 using Cinema.Domain.Entities;
 using Cinema.Business.Dtos;
 using Cinema.Business.Services;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -63,6 +64,26 @@ namespace WebApplication1.Controllers
                 return IdentityFailure(result);
 
             return CreatedAtAction(nameof(GetProfile), new { id = user.Id }, _mapper.Map<UserProfileResponse>(user));
+        }
+
+        [HttpPost("token")]
+        public async Task<ActionResult<TokenResponse>> CreateToken([FromBody] IdentityLoginRequest data, [FromServices] JwtTokenService _jwtTokenService)
+        {
+            var validationResult = _loginValidator.Validate(data);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
+            var user = await _identityAuthService.ValidateUserAsync(data.Login, data.Password);
+            if (user == null)
+                return Unauthorized(new ProblemDetails
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Login failed.",
+                    Detail = "Invalid login or password."
+                });
+
+            var (token, expiresAt) = _jwtTokenService.Create(user);
+            return Ok(new TokenResponse { Token = token, ExpiresAt = expiresAt });
         }
 
         [HttpPost("login")]

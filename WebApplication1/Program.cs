@@ -1,5 +1,9 @@
 using Cinema.Business;
+using System.Text;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using WebApplication1.Services;
 using WebApplication1.Contracts;
 using WebApplication1.Validations;
 
@@ -10,6 +14,22 @@ builder.Services.AddOpenApi();
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 
 builder.Services.AddBusiness(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty)),
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IValidator<IdentityRegisterRequest>, RegisterRequestValidator>();
 builder.Services.AddScoped<IValidator<IdentityLoginRequest>, IdentityLoginRequestValidator>();
