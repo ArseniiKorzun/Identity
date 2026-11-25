@@ -15,6 +15,7 @@ builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 
 builder.Services.AddBusiness(builder.Configuration.GetConnectionString("DefaultConnection"));
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<IValidator<TokenRequest>, TokenRequestValidator>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

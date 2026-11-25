@@ -17,9 +17,9 @@ namespace Cinema.Business.Services
 
         public Task<IdentityResult> RegisterAsync(User user, string password) => _userRepository.CreateAsync(user, password);
 
-        public async Task<User> ValidateUserAsync(string login, string password)
+        public async Task<User> ValidateUserByEmailAsync(string email, string password)
         {
-            var user = await _userRepository.FindByNameAsync(login);
+            var user = await _userRepository.FindByEmailAsync(email);
             return user != null && await _userRepository.CheckPasswordAsync(user, password) ? user : null;
         }
 

@@ -67,13 +67,13 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("token")]
-        public async Task<ActionResult<TokenResponse>> CreateToken([FromBody] IdentityLoginRequest data, [FromServices] JwtTokenService _jwtTokenService)
+        public async Task<ActionResult<TokenResponse>> CreateToken([FromBody] TokenRequest data, [FromServices] JwtTokenService _jwtTokenService, [FromServices] IValidator<TokenRequest> _tokenValidator)
         {
-            var validationResult = _loginValidator.Validate(data);
+            var validationResult = _tokenValidator.Validate(data);
             if (!validationResult.IsValid)
                 return BadRequest(validationResult.Errors);
 
-            var user = await _identityAuthService.ValidateUserAsync(data.Login, data.Password);
+            var user = await _identityAuthService.ValidateUserByEmailAsync(data.Email, data.Password);
             if (user == null)
                 return Unauthorized(new ProblemDetails
                 {
